@@ -1,1 +1,149 @@
-Initial Version
+MCP + CLI + Feishu Skill Demo
+
+This demo shows how to:
+1. Build a local MCP server that provides a skill scaffold tool.
+2. Build a CLI client with multi-command workflow.
+3. Generate both skill definition and Python executor.
+4. Execute skill logic through Python and optionally push result to Feishu.
+
+Project structure:
+
+.
+|- package.json
+|- src/
+|  |- mcp-server.js
+|  `- cli.js
+`- skills/
+	`- <skill-name>/
+		|- SKILL.md
+		`- main.py
+
+Quick start:
+
+1) Install dependencies
+
+npm install
+
+2) Optional: create local env file from template
+
+copy .env.example .env
+
+3) Create a skill locally (MCP + CLI)
+
+npm run skill:create -- --name zhihu-digest --description "Summarize top Zhihu answers and push daily"
+
+This will generate:
+- skills/zhihu-digest/SKILL.md
+- skills/zhihu-digest/main.py
+
+4) Push generated skill to Feishu
+
+npm run skill:push -- --name zhihu-digest
+
+5) Or create and push in one command
+
+npm run skill:demo -- --name zhihu-digest --description "Summarize top Zhihu answers and push daily"
+
+6) List all local skills
+
+npm run skill:list
+
+7) Execute Python logic of a skill
+
+npm run skill:exec -- --name zhihu-digest --query "知乎今天热门 AI 回答"
+
+8) Execute and push result to Feishu
+
+npm run skill:exec -- --name zhihu-digest --query "知乎今天热门 AI 回答" --push
+
+9) Daily digest (Zhihu only) one-shot test
+
+npm run skill:daily:once
+
+Zhihu source priority:
+1. Public hot-list mirror (60s.viki.moe), no cookie/login required
+2. Zhihu official hot-list API (cookie improves success)
+3. Zhihu website hot pages (zhihu.com)
+4. Optional custom JSON source
+
+10) Daily digest schedule at 01:00 local time
+
+npm run skill:daily -- --time 01:00
+
+11) Start scheduler and also run immediately once
+
+npm run skill:daily -- --time 01:00 --run-now
+
+Optional parameters:
+
+--webhook <url>     Override FEISHU_WEBHOOK_URL
+--name <skill-name> Skill folder name
+--description <text> Skill description
+--push              Push to Feishu when using create command
+--query <text>      Input query for exec command
+--context <text>    Optional context for exec command
+--python <path>     Python executable path for exec command
+--time <HH:MM>      Daily push time for daily command, default 01:00
+--once              Run daily digest once and exit
+--run-now           Run once immediately, then keep scheduler running
+--zhihu-hot-urls <urls> Comma-separated Zhihu hot page URLs (zhihu.com)
+--zhihu-cookie <cookie> Optional cookie for Zhihu anti-bot/login pages
+--zhihu-cookie-expires-at <iso> Optional expiry timestamp for reminder
+--zhihu-json-url <url> Optional JSON source for Zhihu fallback
+--zhihu-limit <n>   Max number of Zhihu items, default 10
+
+Environment variable (optional):
+
+FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/138fd2f9-73e9-4e0b-9abb-34a749ac3950
+
+Environment loading:
+
+- CLI automatically loads project-root .env before reading command flags.
+- Command-line args still have highest priority.
+- Recommended: keep ZHIHU_COOKIE and ZHIHU_COOKIE_EXPIRES_AT in .env.
+
+Expected output:
+
+- A new file: skills/<name>/SKILL.md
+- A Feishu text message indicating generation success and preview content
+
+Commands:
+
+- npm run skill:create -- --name demo --description "..."
+	- generate and save only
+- npm run skill:create -- --name demo --description "..." --push
+	- generate, save, and push
+- npm run skill:push -- --name demo
+	- push existing skills/demo/SKILL.md
+- npm run skill:list
+	- list all local skills
+- npm run skill:exec -- --name demo --query "..."
+	- run skills/demo/main.py and print JSON output
+- npm run skill:exec -- --name demo --query "..." --push
+	- run executor and push output to Feishu
+- npm run skill:daily:once
+	- pull Zhihu high-signal answers once and push to Feishu
+- npm run skill:daily -- --time 01:00
+	- run a local scheduler that pushes digest every day at 01:00
+
+How MCP works in this demo:
+
+1) CLI calls MCP tool skill_scaffold.
+2) MCP server returns a structured SKILL.md template (capabilities, constraints, metadata).
+3) CLI stores SKILL.md to skills/<name>/SKILL.md.
+4) CLI also ensures skills/<name>/main.py exists as executable logic.
+5) exec command runs main.py and gets runtime output.
+
+In short:
+- MCP defines and standardizes skill structure.
+- Python file executes the real business logic.
+
+Daily use-case notes (Zhihu):
+
+- Public mirror: pulls the Zhihu hot list from 60s.viki.moe without any cookie/login.
+- Zhihu API: official hot-list API is used as second source (cookie improves success).
+- Zhihu website: tries zhihu.com hot pages and extracts question/answer links.
+- Zhihu anti-bot: if blocked, pass --zhihu-cookie or ZHIHU_COOKIE.
+- Fallback JSON: pass --zhihu-json-url (or env ZHIHU_JSON_URL).
+- Scheduler: this is process-based scheduling, so keep the command running (or host with PM2 / task scheduler).
+- Fault tolerance: if one source fails due to anti-bot limits, task still pushes digest with source error notes instead of crashing.

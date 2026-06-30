@@ -1,0 +1,19 @@
+{
+  "name": "mcp-cli-feishu-skill-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start:mcp": "node src/mcp-server.js",
+    "skill:demo": "node src/cli.js create --push",
+    "skill:create": "node src/cli.js create",
+    "skill:list": "node src/cli.js list",
+    "skill:push": "node src/cli.js push",
+    "skill:exec": "node src/cli.js exec",
+    "skill:daily": "node src/cli.js daily",
+    "skill:daily:once": "node src/cli.js daily --once"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.4"
+  }
+}
